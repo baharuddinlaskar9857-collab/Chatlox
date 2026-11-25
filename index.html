@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GhostChat - Anonymous Chat</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0b0b14;
+    color: white;
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.chat-container {
+    width: 100%;
+    max-width: 500px;
+    height: 95vh;
+    background: #151522;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #292940;
+}
+
+.header {
+    padding: 20px;
+    background: #1c1c2c;
+    text-align: center;
+    border-bottom: 1px solid #303047;
+}
+
+.header h2 {
+    color: #a78bfa;
+}
+
+.header p {
+    color: #aaa;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+#username {
+    text-align: center;
+    padding: 10px;
+    color: #a78bfa;
+    font-size: 13px;
+}
+
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.message {
+    background: #27273b;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+}
+
+.message strong {
+    color: #a78bfa;
+    font-size: 12px;
+}
+
+.message p {
+    margin-top: 5px;
+}
+
+.message small {
+    color: #888;
+    font-size: 10px;
+}
+
+.input-area {
+    display: flex;
+    padding: 15px;
+    gap: 8px;
+    background: #1c1c2c;
+}
+
+input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px;
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    background: #303047;
+    color: white;
+}
+
+button {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    background: #8b5cf6;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #7c3aed;
+}
+
+.notice {
+    text-align: center;
+    color: #888;
+    font-size: 11px;
+    padding: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="chat-container">
+
+    <div class="header">
+        <h2>👻 GhostChat</h2>
+        <p>Talk freely. Stay anonymous.</p>
+    </div>
+
+    <div id="username"></div>
+
+    <div id="messages">
+        <div class="notice">
+            Welcome to GhostChat!
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input
+            type="text"
+            id="messageInput"
+            placeholder="Write something..."
+            maxlength="1000"
+        >
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div class="notice">
+        Don't share your personal information.
+    </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    push,
+    onChildAdded,
+    query,
+    limitToLast
+} from
+"https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "YOUR_DATABASE_URL",
+    projectId: "YOUR_PROJECT_ID",
+    appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const names = [
+    "Shadow", "Ghost", "Unknown",
+    "Moon", "SilentSoul", "Mystery",
+    "NightOwl", "HiddenOne"
+];
+
+const username =
+    names[Math.floor(Math.random() * names.length)] +
+    Math.floor(1000 + Math.random() * 9000);
+
+document.getElementById("username").textContent =
+    "You are chatting as: " + username;
+
+const messagesRef = query(
+    ref(db, "messages"),
+    limitToLast(100)
+);
+
+const messagesBox = document.getElementById("messages");
+
+onChildAdded(messagesRef, (snapshot) => {
+    const data = snapshot.val();
+
+    if (!data || typeof data.text !== "string") return;
+
+    const message = document.createElement("div");
+    message.className = "message";
+
+    const name = document.createElement("strong");
+    name.textContent = data.username || "Anonymous";
+
+    const text = document.createElement("p");
+    text.textContent = data.text;
+
+    const time = document.createElement("small");
+    time.textContent = new Date(data.time).toLocaleTimeString();
+
+    message.append(name, text, time);
+    messagesBox.appendChild(message);
+
+    messagesBox.scrollTop = messagesBox.scrollHeight;
+});
+
+window.sendMessage = async function () {
+    const input = document.getElementById("messageInput");
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    if (text.length > 1000) return;
+
+    try {
+        await push(ref(db, "messages"), {
+            username: username,
+            text: text,
+            time: Date.now()
+        });
+
+        input.value = "";
+    } catch (error) {
+        alert("Message could not be sent. Try again.");
+        console.error(error);
+    }
+};
+
+document.getElementById("messageInput")
+.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        window.sendMessage();
+    }
+});
+</script>
+
+</body>
+</html>
